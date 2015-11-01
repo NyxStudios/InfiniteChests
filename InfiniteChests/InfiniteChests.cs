@@ -19,7 +19,7 @@ using TShockAPI.DB;
 
 namespace InfiniteChests
 {
-	[ApiVersion(1, 21)]
+	[ApiVersion(1, 22)]
 	public class InfiniteChests : TerrariaPlugin
 	{
 		private IDbConnection Database;
