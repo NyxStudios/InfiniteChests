@@ -19,7 +19,7 @@ using TShockAPI.DB;
 
 namespace InfiniteChests
 {
-	[ApiVersion(1, 17)]
+	[ApiVersion(1, 22)]
 	public class InfiniteChests : TerrariaPlugin
 	{
 		private IDbConnection Database;
@@ -129,43 +129,43 @@ namespace InfiniteChests
 							}
 							break;
 						case PacketTypes.ChestOpen:
-						{
-							int action = reader.ReadInt16();
-							int x = reader.ReadInt16();
-							int y = reader.ReadInt16();
+							{
+								int action = reader.ReadInt16();
+								int x = reader.ReadInt16();
+								int y = reader.ReadInt16();
 
-							if (action == -1)
-							{
-								if (Infos[plr].TransactionsLeft > 0)
+								if (action == -1)
 								{
-									//user closed the chest, but still have items transferring, close when it finishes.
-									Infos[plr].ShouldCloseAfterTransactions = true;
+									if (Infos[plr].TransactionsLeft > 0)
+									{
+										//user closed the chest, but still have items transferring, close when it finishes.
+										Infos[plr].ShouldCloseAfterTransactions = true;
+									}
+									else
+									{
+										Infos[plr].X = -1;
+										Infos[plr].Y = -1;
+									}
 								}
-								else
+								else if (Infos[plr].TransactionsLeft > 0)
 								{
-									Infos[plr].X = -1;
-									Infos[plr].Y = -1;
+									//the user is still transfering items, they shouldnt be allowed to open another chest until that finishes.
+									return;
 								}
-							}
-							else if (Infos[plr].TransactionsLeft > 0)
-							{
-								//the user is still transfering items, they shouldnt be allowed to open another chest until that finishes.
-								return;
-							}
 #if !MULTI_USE
-							if (Infos.Any(p => p.X == x && p.Y == y))
-							{
-								//chest is in use, ignore
-								TShock.Players[plr].SendErrorMessage("This chest is currently open by someone else.");
-								return;
-							}
+								if (Infos.Any(p => p.X == x && p.Y == y))
+								{
+									//chest is in use, ignore
+									TShock.Players[plr].SendErrorMessage("This chest is currently open by someone else.");
+									return;
+								}
 #endif
-							int length = reader.ReadByte();
+								int length = reader.ReadByte();
 
-							if (length != 0 && length <= 20 && length != 255)
-								TShock.Players[plr].SendData(PacketTypes.ChestName, "", 0, x, y);
-						}
-						break;
+								if (length != 0 && length <= 20 && length != 255)
+									TShock.Players[plr].SendData(PacketTypes.ChestName, "", 0, x, y);
+							}
+							break;
 						case PacketTypes.TileKill:
 							{
 								if (Infos[plr].TransactionsLeft > 0)
@@ -333,7 +333,7 @@ namespace InfiniteChests
 			if (converted > 0)
 			{
 				TSPlayer.Server.SendSuccessMessage("[InfiniteChests] Converted {0} chest{1}.", converted, converted == 1 ? "" : "s");
-				WorldFile.saveWorld();
+				TShock.Utils.SaveWorld();
 			}
 		}
 
@@ -383,7 +383,7 @@ namespace InfiniteChests
 							player.SendErrorMessage("This chest is already protected.");
 							break;
 						}
-						Database.Query("UPDATE Chests SET Account = @0 WHERE ID = @1", player.UserAccountName, chest.ID);
+						Database.Query("UPDATE Chests SET Account = @0 WHERE ID = @1", player.User.Name, chest.ID);
 						player.SendSuccessMessage("This chest is now protected.");
 						break;
 					case ChestAction.TogglePublic:
@@ -392,7 +392,7 @@ namespace InfiniteChests
 							player.SendErrorMessage("This chest is not protected.");
 							break;
 						}
-						if (chest.Account != player.UserAccountName && !player.Group.HasPermission("infchests.admin.editall"))
+						if (chest.Account != player.User.Name && !player.Group.HasPermission("infchests.admin.editall"))
 						{
 							player.SendErrorMessage("This chest is not yours.");
 							break;
@@ -406,7 +406,7 @@ namespace InfiniteChests
 							player.SendErrorMessage("This chest is not protected.");
 							break;
 						}
-						if (chest.Account != player.UserAccountName && !player.Group.HasPermission("infchests.admin.editall"))
+						if (chest.Account != player.User.Name && !player.Group.HasPermission("infchests.admin.editall"))
 						{
 							player.SendErrorMessage("This chest is not yours.");
 							break;
@@ -420,7 +420,7 @@ namespace InfiniteChests
 							player.SendErrorMessage("This chest is not protected.");
 							break;
 						}
-						if (chest.Account != player.UserAccountName && !player.Group.HasPermission("infchests.admin.editall"))
+						if (chest.Account != player.User.Name && !player.Group.HasPermission("infchests.admin.editall"))
 						{
 							player.SendErrorMessage("This chest is not yours.");
 							break;
@@ -457,7 +457,7 @@ namespace InfiniteChests
 							player.SendErrorMessage("This chest is not protected.");
 							break;
 						}
-						if (chest.Account != player.UserAccountName && !player.Group.HasPermission("infchests.admin.editall"))
+						if (chest.Account != player.User.Name && !player.Group.HasPermission("infchests.admin.editall"))
 						{
 							player.SendErrorMessage("This chest is not yours.");
 							break;
@@ -479,7 +479,7 @@ namespace InfiniteChests
 							player.SendErrorMessage("This chest is not protected.");
 							break;
 						}
-						if (chest.Account != player.UserAccountName && !player.Group.HasPermission("infchests.admin.editall"))
+						if (chest.Account != player.User.Name && !player.Group.HasPermission("infchests.admin.editall"))
 						{
 							player.SendErrorMessage("This chest is not yours.");
 							break;
@@ -501,7 +501,7 @@ namespace InfiniteChests
 							player.SendErrorMessage("This chest is not protected.");
 							break;
 						}
-						if (chest.Account != player.UserAccountName && !player.Group.HasPermission("infchests.admin.editall"))
+						if (chest.Account != player.User.Name && !player.Group.HasPermission("infchests.admin.editall"))
 						{
 							player.SendErrorMessage("This chest is not yours.");
 							break;
@@ -519,7 +519,7 @@ namespace InfiniteChests
 #endif
 
 						bool isFree = String.IsNullOrEmpty(chest.Account);
-						bool isOwner = chest.Account == player.UserAccountName || player.Group.HasPermission("infchests.admin.editall");
+						bool isOwner = chest.Account == player.User.Name || player.Group.HasPermission("infchests.admin.editall");
 						bool isRegion = chest.IsRegion && TShock.Regions.CanBuild(x, y, player);
 						if (!isFree && !isOwner && !chest.IsPublic && !isRegion)
 						{
@@ -606,7 +606,7 @@ namespace InfiniteChests
 				WorldGen.KillTile(x, y);
 				TSPlayer.All.SendData(PacketTypes.Tile, "", 0, x, y + 1);
 			}
-			else if (chest.Account != player.UserAccountName && !String.IsNullOrEmpty(chest.Account) && !player.Group.HasPermission("infchests.admin.editall"))
+			else if (chest.Account != player.User.Name && !String.IsNullOrEmpty(chest.Account) && !player.Group.HasPermission("infchests.admin.editall"))
 			{
 				player.SendErrorMessage("This chest is protected.");
 				player.SendTileSquare(x, y, 3);
@@ -735,7 +735,7 @@ namespace InfiniteChests
 		{
 			TSPlayer player = TShock.Players[plr];
 			Database.Query("INSERT INTO Chests (X, Y, Account, Flags, Items, Password, WorldID) VALUES (@0, @1, @2, 0, @3, NULL, @4)",
-				x, y - 1, (player.IsLoggedIn && player.Group.HasPermission("infchests.chest.protect")) ? player.UserAccountName : null,
+				x, y - 1, (player.IsLoggedIn && player.Group.HasPermission("infchests.chest.protect")) ? player.User.Name : null,
 				"0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0," +
 				"0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0", Main.worldID);
 			Main.chest[999] = null;
@@ -789,7 +789,7 @@ namespace InfiniteChests
 		}
 		void ConvertChests(CommandArgs e)
 		{
-			Task.Factory.StartNew(() => 
+			Task.Factory.StartNew(() =>
 			{
 				int converted = 0;
 				var items = new StringBuilder();
@@ -810,7 +810,7 @@ namespace InfiniteChests
 
 				e.Player.SendSuccessMessage("Converted {0} chest{1}.", converted, converted == 1 ? "" : "s");
 				if (converted > 0)
-					WorldFile.saveWorld();
+					TShock.Utils.SaveWorld();
 			}).LogExceptions();
 		}
 		void Deselect(CommandArgs e)
@@ -914,7 +914,7 @@ namespace InfiniteChests
 
 					e.Player.SendSuccessMessage("Pruned {0} corrupted chest{1}.", corrupted, corrupted == 1 ? "" : "s");
 					if (corrupted + empty > 0)
-						WorldFile.saveWorld();
+						TShock.Utils.SaveWorld();
 				}).LogExceptions();
 		}
 		void Refill(CommandArgs e)
@@ -996,7 +996,7 @@ namespace InfiniteChests
 				Database.Query("DELETE FROM Chests WHERE WorldID = @0", Main.worldID);
 				e.Player.SendSuccessMessage("Reverse converted {0} chests.", i);
 				if (i > 0)
-					WorldFile.saveWorld();
+					TShock.Utils.SaveWorld();
 			}).LogExceptions();
 		}
 		void Unlock(CommandArgs e)
