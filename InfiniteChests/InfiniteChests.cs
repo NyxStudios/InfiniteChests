@@ -129,43 +129,43 @@ namespace InfiniteChests
 							}
 							break;
 						case PacketTypes.ChestOpen:
-						{
-							int action = reader.ReadInt16();
-							int x = reader.ReadInt16();
-							int y = reader.ReadInt16();
+							{
+								int action = reader.ReadInt16();
+								int x = reader.ReadInt16();
+								int y = reader.ReadInt16();
 
-							if (action == -1)
-							{
-								if (Infos[plr].TransactionsLeft > 0)
+								if (action == -1)
 								{
-									//user closed the chest, but still have items transferring, close when it finishes.
-									Infos[plr].ShouldCloseAfterTransactions = true;
+									if (Infos[plr].TransactionsLeft > 0)
+									{
+										//user closed the chest, but still have items transferring, close when it finishes.
+										Infos[plr].ShouldCloseAfterTransactions = true;
+									}
+									else
+									{
+										Infos[plr].X = -1;
+										Infos[plr].Y = -1;
+									}
 								}
-								else
+								else if (Infos[plr].TransactionsLeft > 0)
 								{
-									Infos[plr].X = -1;
-									Infos[plr].Y = -1;
+									//the user is still transfering items, they shouldnt be allowed to open another chest until that finishes.
+									return;
 								}
-							}
-							else if (Infos[plr].TransactionsLeft > 0)
-							{
-								//the user is still transfering items, they shouldnt be allowed to open another chest until that finishes.
-								return;
-							}
 #if !MULTI_USE
-							if (Infos.Any(p => p.X == x && p.Y == y))
-							{
-								//chest is in use, ignore
-								TShock.Players[plr].SendErrorMessage("This chest is currently open by someone else.");
-								return;
-							}
+								if (Infos.Any(p => p.X == x && p.Y == y))
+								{
+									//chest is in use, ignore
+									TShock.Players[plr].SendErrorMessage("This chest is currently open by someone else.");
+									return;
+								}
 #endif
-							int length = reader.ReadByte();
+								int length = reader.ReadByte();
 
-							if (length != 0 && length <= 20 && length != 255)
-								TShock.Players[plr].SendData(PacketTypes.ChestName, "", 0, x, y);
-						}
-						break;
+								if (length != 0 && length <= 20 && length != 255)
+									TShock.Players[plr].SendData(PacketTypes.ChestName, "", 0, x, y);
+							}
+							break;
 						case PacketTypes.TileKill:
 							{
 								if (Infos[plr].TransactionsLeft > 0)
@@ -333,7 +333,7 @@ namespace InfiniteChests
 			if (converted > 0)
 			{
 				TSPlayer.Server.SendSuccessMessage("[InfiniteChests] Converted {0} chest{1}.", converted, converted == 1 ? "" : "s");
-                TShock.Utils.SaveWorld();
+				TShock.Utils.SaveWorld();
 			}
 		}
 
@@ -789,7 +789,7 @@ namespace InfiniteChests
 		}
 		void ConvertChests(CommandArgs e)
 		{
-			Task.Factory.StartNew(() => 
+			Task.Factory.StartNew(() =>
 			{
 				int converted = 0;
 				var items = new StringBuilder();
@@ -809,8 +809,8 @@ namespace InfiniteChests
 				}
 
 				e.Player.SendSuccessMessage("Converted {0} chest{1}.", converted, converted == 1 ? "" : "s");
-                if (converted > 0)
-                    TShock.Utils.SaveWorld();
+				if (converted > 0)
+					TShock.Utils.SaveWorld();
 			}).LogExceptions();
 		}
 		void Deselect(CommandArgs e)
@@ -913,8 +913,8 @@ namespace InfiniteChests
 						Database.Query("DELETE FROM Chests WHERE ID = @0", pruneID[i]);
 
 					e.Player.SendSuccessMessage("Pruned {0} corrupted chest{1}.", corrupted, corrupted == 1 ? "" : "s");
-                    if (corrupted + empty > 0)
-                        TShock.Utils.SaveWorld();
+					if (corrupted + empty > 0)
+						TShock.Utils.SaveWorld();
 				}).LogExceptions();
 		}
 		void Refill(CommandArgs e)
@@ -995,8 +995,8 @@ namespace InfiniteChests
 				}
 				Database.Query("DELETE FROM Chests WHERE WorldID = @0", Main.worldID);
 				e.Player.SendSuccessMessage("Reverse converted {0} chests.", i);
-                if (i > 0)
-                    TShock.Utils.SaveWorld();
+				if (i > 0)
+					TShock.Utils.SaveWorld();
 			}).LogExceptions();
 		}
 		void Unlock(CommandArgs e)
